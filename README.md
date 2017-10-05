@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-goce is a CLI which exports Google Calendar to text written in Go.
-This is useful for pasting events to text field.
+goce is a CLI which exports Google Calendar events to text written in Go.
+This is useful for pasting events to any text field.
 
 ## Usage
 
