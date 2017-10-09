@@ -24,20 +24,12 @@ const (
 )
 
 func NewClient() *http.Client {
-	b, err := ioutil.ReadFile(secretFile)
+	c, err := google.ConfigFromJSON(readSecretFile(), calendar.CalendarReadonlyScope)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Fatal(err)
 	}
 
-	c, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-
-	f, err := tokenFilePath()
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+	f := tokenFilePath()
 
 	t, err := tokenFromFile(f)
 	if err != nil {
@@ -48,15 +40,27 @@ func NewClient() *http.Client {
 	return c.Client(context.Background(), t)
 }
 
-func tokenFilePath() (string, error) {
+func readSecretFile() []byte {
+	b, err := ioutil.ReadFile(filepath.Join(baseDirPath(), secretFile))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return b
+}
+
+func baseDirPath() string {
 	u, err := user.Current()
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
 
 	d := filepath.Join(u.HomeDir, baseDir)
 	os.MkdirAll(d, 0700)
-	return filepath.Join(d, url.QueryEscape(tokenFile)), nil
+	return d
+}
+
+func tokenFilePath() string {
+	return filepath.Join(baseDirPath(), url.QueryEscape(tokenFile))
 }
 
 func tokenFromFile(file string) (*oauth2.Token, error) {
@@ -68,8 +72,7 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	t := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(t)
 	defer f.Close()
-
-	return t, nil
+	return t, err
 }
 
 func requestToken(c *oauth2.Config) *oauth2.Token {
@@ -82,12 +85,12 @@ func requestToken(c *oauth2.Config) *oauth2.Token {
 
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
-		log.Fatalf("%v", err)
+		log.Fatal(err)
 	}
 
 	t, err := c.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Fatal(err)
 	}
 
 	return t
@@ -98,7 +101,7 @@ func saveToken(file string, t *oauth2.Token) {
 
 	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Fatal(err)
 	}
 	defer f.Close()
 
