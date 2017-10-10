@@ -10,14 +10,15 @@ func main() {
 
 	evts, err := c.Events()
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Fatal(err)
 	}
 
 	if len(evts) > 0 {
+		f := &Formatter{}
 		for _, e := range evts {
-			fmt.Println(e)
+			fmt.Println(f.Event(e))
 		}
 	} else {
-		fmt.Printf("No events found.\n")
+		fmt.Println("No events found.")
 	}
 }
