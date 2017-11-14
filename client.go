@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"os/user"
 	"path/filepath"
+	"runtime"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -17,93 +15,85 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
-const (
-	baseDir    = ".goce"
-	secretFile = "client_secret.json"
-	tokenFile  = "token.json"
-)
-
-func NewClient() *http.Client {
-	c, err := google.ConfigFromJSON(readSecretFile(), calendar.CalendarReadonlyScope)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	f := tokenFilePath()
-
-	t, err := tokenFromFile(f)
-	if err != nil {
-		t = requestToken(c)
-		saveToken(f, t)
-	}
-
-	return c.Client(context.Background(), t)
-}
-
-func readSecretFile() []byte {
-	b, err := ioutil.ReadFile(filepath.Join(baseDirPath(), secretFile))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return b
-}
-
-func baseDirPath() string {
-	u, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	d := filepath.Join(u.HomeDir, baseDir)
-	os.MkdirAll(d, 0700)
-	return d
-}
-
-func tokenFilePath() string {
-	return filepath.Join(baseDirPath(), url.QueryEscape(tokenFile))
-}
-
-func tokenFromFile(file string) (*oauth2.Token, error) {
-	f, err := os.Open(file)
+func NewClient() (*http.Client, error) {
+	json, err := ioutil.ReadFile(filepath.Join(baseDir(), "client_secret.json"))
 	if err != nil {
 		return nil, err
 	}
 
-	t := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(t)
-	defer f.Close()
-	return t, err
+	config, err := google.ConfigFromJSON(json, calendar.CalendarReadonlyScope)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := restoreToken()
+	if err != nil {
+		token, err = requestToken(config)
+		if err != nil {
+			return nil, err
+		}
+
+		err = saveToken(token)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return config.Client(context.Background(), token), nil
 }
 
-func requestToken(c *oauth2.Config) *oauth2.Token {
-	URL := c.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+func restoreToken() (*oauth2.Token, error) {
+	file, err := os.Open(filepath.Join(baseDir(), "token.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	token := &oauth2.Token{}
+	err = json.NewDecoder(file).Decode(token)
+	defer file.Close()
+
+	return token, err
+}
+
+func requestToken(config *oauth2.Config) (*oauth2.Token, error) {
+	url := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 
 	fmt.Printf(`1. Go to the following link in your browser:
 %v
 
-2. Type the authorization code: `, URL)
+2. Type the authorization code: `, url)
 
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	t, err := c.Exchange(oauth2.NoContext, code)
+	token, err := config.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return t
+	return token, nil
 }
 
-func saveToken(file string, t *oauth2.Token) {
-	fmt.Printf("Saving credential file to: %s\n", file)
-
-	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+func saveToken(token *oauth2.Token) error {
+	file, err := os.OpenFile(filepath.Join(baseDir(), "token.json"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	defer f.Close()
+	defer file.Close()
 
-	json.NewEncoder(f).Encode(t)
+	json.NewEncoder(file).Encode(token)
+	return nil
+}
+
+func baseDir() string {
+	var dir string
+	switch runtime.GOOS {
+	case "windows":
+		dir = os.Getenv("APPDATA")
+	default:
+		dir = os.Getenv("HOME")
+	}
+	return filepath.Join(dir, ".gooce")
 }

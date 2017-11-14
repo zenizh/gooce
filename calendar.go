@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -9,22 +8,30 @@ import (
 )
 
 type Calendar struct {
+	EventList []*Event
+
 	service *calendar.Service
 }
 
-func NewCalendar(c *http.Client) *Calendar {
-	s, err := calendar.New(c)
+func NewCalendar(client *http.Client) (*Calendar, error) {
+	service, err := calendar.New(client)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return &Calendar{service: s}
+	return &Calendar{service: service}, nil
 }
 
-func (c *Calendar) Events() ([]*calendar.Event, error) {
+func (calendar *Calendar) FetchEvents() error {
 	t := time.Now().Format(time.RFC3339)
-	evts, err := c.service.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("StartTime").Do()
+
+	evts, err := calendar.service.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("StartTime").Do()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	return evts.Items, nil
+
+	for _, item := range evts.Items {
+		calendar.EventList = append(calendar.EventList, NewEvent(item))
+	}
+
+	return nil
 }
