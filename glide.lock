@@ -1,4 +1,43 @@
-hash: 5038df86446717e13ad20dcf528ca99138b66d2cff0c456793946d907435ceb2
-updated: 2017-10-05T19:38:48.190633439+09:00
-imports: []
+hash: b27a374ed0b66308cd67efb1e13d5ff817c7c45a343d91d973b926cbf30ff5b6
+updated: 2017-11-15T01:54:15.284032+09:00
+imports:
+- name: cloud.google.com/go
+  version: b42e7d1aac8a4c07a3109dd54bbca4abc3f005ea
+  subpackages:
+  - compute/metadata
+- name: github.com/golang/protobuf
+  version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
+  subpackages:
+  - proto
+- name: golang.org/x/net
+  version: a337091b0525af65de94df2eb7e98bd9962dcbe2
+  subpackages:
+  - context
+  - context/ctxhttp
+- name: golang.org/x/oauth2
+  version: 9ff8ebcc8e241d46f52ecc5bff0e5a2f2dbef402
+  subpackages:
+  - google
+  - internal
+  - jws
+  - jwt
+- name: google.golang.org/api
+  version: a0c31fb0028e0111b942a29b9fc2e9235202c48b
+  subpackages:
+  - calendar/v3
+  - gensupport
+  - googleapi
+  - googleapi/internal/uritemplates
+- name: google.golang.org/appengine
+  version: 9d8544a6b2c7df9cff240fcf92d7b2f59bc13416
+  subpackages:
+  - internal
+  - internal/app_identity
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/modules
+  - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
 testImports: []
